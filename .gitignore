@@ -1,0 +1,13 @@
+# Python packaging artifacts
+build/
+dist/
+*.egg-info/
+__pycache__/
+*.pyc
+
+# Environments
+.venv/
+venv/
+
+# OS noise
+.DS_Store

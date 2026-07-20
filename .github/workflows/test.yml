@@ -1,0 +1,48 @@
+name: Tests
+
+# Smoke test: the package installs, the extension loads in a minimal Sphinx
+# project, and every JS module ends up in the built _static/ directory.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package
+        run: python -m pip install .
+      - name: Build a minimal Sphinx project with the extension enabled
+        run: |
+          mkdir -p demo
+          cat > demo/conf.py <<'EOF'
+          project = "demo"
+          extensions = ["sphinx_persistence"]
+          persistence_progress_checkboxes = True
+          persistence_part_heading_pages = "part_"
+          persistence_activity_exclude_ids = ["skip-me"]
+          persistence_book_id = "demo-book"
+          EOF
+          echo "Demo" > demo/index.rst
+          echo "====" >> demo/index.rst
+          python -m sphinx -b html demo demo/_build
+      - name: Assert all JS assets landed in _static
+        run: |
+          for f in sphinx-persistence-config.js data-manager.js book-exporter.js \
+                   thebe-code-persistence.js teachbook-questions-persistence.js \
+                   activity-persistence.js progress-checkboxes.js; do
+            test -f "demo/_build/_static/$f" || { echo "MISSING: $f"; exit 1; }
+          done
+          grep -q '"bookId": "demo-book"' demo/_build/_static/sphinx-persistence-config.js
+          grep -q 'data-manager.js' demo/_build/index.html
+          echo "All assets present and wired."

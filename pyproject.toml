@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sphinx-persistence"
+version = "0.1.0"
+description = "Client-side persistence for interactive Sphinx sites: auto-save form answers, quiz selections and live-code cells to localStorage, with an export / import / reset toolbar."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Omar Kammouh" }]
+requires-python = ">=3.9"
+dependencies = ["sphinx>=5"]
+keywords = ["sphinx", "jupyter-book", "teachbooks", "persistence", "localStorage", "interactive", "autosave"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: Sphinx :: Extension",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: JavaScript",
+    "Topic :: Documentation :: Sphinx",
+]
+
+[project.urls]
+Homepage = "https://github.com/omarkammouh/sphinx-persistence"
+Repository = "https://github.com/omarkammouh/sphinx-persistence"
+Issues = "https://github.com/omarkammouh/sphinx-persistence/issues"
+Changelog = "https://github.com/omarkammouh/sphinx-persistence/blob/main/CHANGELOG.md"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+sphinx_persistence = ["static/*.js"]
