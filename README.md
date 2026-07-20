@@ -14,6 +14,21 @@ and three new buttons appear in the page toolbar:
 Everything is stored in the reader's own browser. There is no server, no
 account, and no data ever leaves their computer.
 
+## What it looks like
+
+The three buttons join the regular toolbar on every page:
+
+![Export, Import and Reset buttons in the page toolbar](docs/toolbar.png)
+
+Each page ends with a completion checkbox:
+
+![Mark this section as complete checkbox](docs/mark-complete.png)
+
+Completed pages get a checkmark in the sidebar, so readers can see how far
+they are at a glance:
+
+![Checkmark next to a completed section in the sidebar](docs/sidebar-check.png)
+
 ## Install
 
 Two lines, then rebuild your book.
