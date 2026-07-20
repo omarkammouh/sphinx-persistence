@@ -27,7 +27,7 @@ sphinx:
     - sphinx_persistence
 ```
 
-That is all. For a plain Sphinx project (no Jupyter Book), add
+That's it. For a plain Sphinx project (no Jupyter Book), add
 `"sphinx_persistence"` to the `extensions` list in `conf.py` instead.
 
 ## Features
@@ -113,25 +113,10 @@ page in its original state. It only ever touches this extension's own data.
 
 - The output of code cells. Only the code is saved; running it again brings
   the output back.
-- Anything inside an iframe from another website (YouTube, H5P on h5p.com,
-  and so on). See below for why.
+- Anything inside an iframe from another website (YouTube, H5P, and so on).
+  Browsers do not allow a page to look inside those.
 - Canvas animations and games. They restart on purpose.
 - Which tab of a tab-set was open.
-
-### Why H5P answers cannot be saved
-
-This is the most common question, so here is the honest answer. An H5P quiz
-is not really part of your book's page: it is loaded from a different website
-(for example h5p.com) inside a protected window. Browsers deliberately forbid
-a page from seeing anything that happens inside such a window. It is the same
-security rule that stops a random website from spying on your bank page when
-it embeds it. The reader's clicks and answers happen behind that wall, so no
-extension running in the book can see them, save them, or put them back.
-
-This is not a limitation of this package; it applies to any client-side tool.
-It would only change if the H5P host itself started sending answers out to
-the surrounding page, or if the H5P content were hosted on the book's own
-website instead of embedded from h5p.com.
 
 ## Settings
 
