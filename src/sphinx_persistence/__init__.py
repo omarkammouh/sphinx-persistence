@@ -15,8 +15,9 @@ optional and set as regular Sphinx config values:
 - ``persistence_questions`` (bool, True): save TeachBooks-Questions answers.
 - ``persistence_activities`` (bool, True): record & replay clicks inside
   bespoke ``{raw} html`` activities.
-- ``persistence_progress_checkboxes`` (bool, False): "Mark as done" controls
-  and sidebar completion ticks. Opt-in because it expects the
+- ``persistence_progress_checkboxes`` (bool, True): "Mark as done" controls
+  and sidebar completion ticks. Every page gets a completion checkbox;
+  per-activity controls additionally require the
   ``data-learning-activity="true"`` / ``.la-title`` markup convention.
 - ``persistence_part_heading_pages`` (str, ""): JS regex matched against
   ``location.pathname``; on matching pages, numbered part headings
@@ -94,7 +95,7 @@ def setup(app):
     app.add_config_value("persistence_code_cells", True, "html")
     app.add_config_value("persistence_questions", True, "html")
     app.add_config_value("persistence_activities", True, "html")
-    app.add_config_value("persistence_progress_checkboxes", False, "html")
+    app.add_config_value("persistence_progress_checkboxes", True, "html")
     app.add_config_value("persistence_part_heading_pages", "", "html")
     app.add_config_value("persistence_activity_exclude_ids", [], "html")
     app.add_config_value("persistence_book_id", "", "html")

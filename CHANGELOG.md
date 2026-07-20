@@ -11,5 +11,5 @@ First release.
 - TeachBooks-Questions answers (multiple choice and math fields)
 - Click record & replay for custom raw-HTML activities
 - Export / Import / Reset toolbar with a validated JSON progress file
-- Optional "Mark as done" progress checkboxes with sidebar ticks
+- "Mark as done" progress checkboxes with sidebar ticks (on by default)
 - Configurable through `persistence_*` options in `conf.py` / `_config.yml`

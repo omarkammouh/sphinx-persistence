@@ -66,7 +66,7 @@ under `sphinx: config:` in `_config.yml`:
 | `persistence_code_cells` | `true` | Save edits in live-code cells |
 | `persistence_questions` | `true` | Save TeachBooks-Questions answers |
 | `persistence_activities` | `true` | Save custom HTML activities |
-| `persistence_progress_checkboxes` | `false` | Add "Mark as done" checkboxes and sidebar checkmarks |
+| `persistence_progress_checkboxes` | `true` | "Mark as done" checkboxes and sidebar checkmarks |
 | `persistence_part_heading_pages` | `""` | On pages matching this pattern, numbered section headings also get a checkbox (for example `"chapter_3\|chapter_4"`) |
 | `persistence_activity_exclude_ids` | `[]` | Activities that should never be saved (for example timed games) |
 | `persistence_book_id` | `""` | A name for your book, so importing a progress file from a different book shows a warning |
