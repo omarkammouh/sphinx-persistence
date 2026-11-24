@@ -41,11 +41,10 @@ class BookProgressManager {
         fileInput.id = 'import-file-input';
         fileInput.addEventListener('change', (e) => this.importProgress(e));
 
-        this.injectStyles();
         this.dockButtons(this.makeMenu(group, [
-            ['export-progress-btn', 'fa-file-export', 'Export progress', () => this.exportProgress()],
-            ['import-progress-btn', 'fa-file-import', 'Import progress', () => fileInput.click()],
-            ['data-reset-btn', 'fa-trash-can', 'Reset progress', () => this.showResetDialog()],
+            ['export-progress-btn', 'fa-download', 'Export progress', () => this.exportProgress()],
+            ['import-progress-btn', 'fa-upload', 'Import progress', () => fileInput.click()],
+            ['data-reset-btn', 'fa-clock-rotate-left', 'Reset progress', () => this.showResetDialog()],
         ], fileInput));
     }
 
@@ -62,8 +61,8 @@ class BookProgressManager {
         toggle.setAttribute('aria-label', 'Your saved progress');
         toggle.setAttribute('aria-haspopup', 'true');
         toggle.setAttribute('aria-expanded', 'false');
-        toggle.title = 'Your saved progress';
-        toggle.innerHTML = '<span class="btn__icon-container"><i class="fa-solid fa-floppy-disk"></i></span>';
+        toggle.title = 'Your progress';
+        toggle.innerHTML = '<span class="btn__icon-container"><i class="fa-solid fa-bars-progress"></i></span>';
 
         const list = document.createElement('ul');
         list.className = 'dropdown-menu progress-menu';
@@ -101,13 +100,16 @@ class BookProgressManager {
 
     /**
      * Place the button group in the optimal spot: the article header's button
-     * bar (alongside Live Code / source / download). Falls back to an unobtrusive
+     * bar (alongside Live Code / source / download / ... ).
+     * Using prepend, so newer buttons are to the left of the already present buttons.
+     * This guarantees less changes to the list of buttons.
+     * Falls back to an unobtrusive
      * fixed corner only if that bar isn't present on the page.
      */
     dockButtons(group) {
         const headerBar = document.querySelector('.article-header-buttons');
         if (headerBar) {
-            headerBar.appendChild(group);
+            headerBar.prepend(group);
             return;
         }
         // Fallback: a low-profile fixed cluster in the bottom-right corner.
@@ -115,37 +117,6 @@ class BookProgressManager {
         const place = () => document.body.appendChild(group);
         if (document.body) place();
         else window.addEventListener('DOMContentLoaded', place);
-    }
-
-    /** Inject the small, scoped stylesheet for the button group (once). */
-    injectStyles() {
-        if (document.getElementById('progress-buttons-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'progress-buttons-styles';
-        style.textContent = `
-            .progress-buttons { display: inline-flex; align-items: center; gap: 0.15rem; }
-            .progress-buttons__btn { color: inherit; background: transparent; border: none;
-                box-shadow: none; padding: 0.25rem 0.4rem; line-height: 1; opacity: 0.85; }
-            .progress-buttons__btn:hover, .progress-buttons__btn:focus {
-                opacity: 1; background: var(--pst-color-surface, rgba(128,128,128,0.15)); }
-            .progress-buttons--menu { position: relative; }
-            /* The theme shifts header menus 75% to the left; keep this one under its own button. */
-            .progress-buttons--menu .progress-menu { right: 0; left: auto; top: calc(100% - 4px);
-                transform: none; margin-top: 0; min-width: 11rem; }
-            /* Open on hover over the icon or the menu itself. The menu overlaps
-               the icon's box by a few pixels, so moving the mouse down from the
-               icon never crosses a gap that would close it. */
-            .progress-buttons--menu:hover > .progress-menu { display: block; }
-            .progress-buttons--menu .progress-menu.show { display: block; }
-            .progress-menu__item { display: flex; align-items: center; gap: 0.5rem; width: 100%;
-                text-align: left; border: none; background: transparent; color: inherit; }
-            .progress-buttons--floating .progress-menu { bottom: 100%; top: auto; }
-            .progress-buttons--floating { position: fixed; bottom: 16px; right: 16px;
-                z-index: 1030; gap: 0.25rem; padding: 0.25rem 0.4rem; border-radius: 8px;
-                background: var(--pst-color-surface, #fff);
-                box-shadow: 0 1px 6px rgba(0,0,0,0.18); }
-        `;
-        (document.head || document.documentElement).appendChild(style);
     }
 
     /**

@@ -12,17 +12,23 @@
  *     which option indices are selected and re-apply the class on load.
  *   - Short-answer MATH fields: rendered as MathLive `<math-field>` custom
  *     elements (not <input>), so we save/restore their `.value` (LaTeX).
- *   - Short-answer TEXT fields ARE real <input> elements, so data-manager.js
- *     already persists them, this adapter deliberately ignores those.
+ *   - Short-answer TEXT fields and inline gaps are real form controls, so
+ *     data-manager.js persists the typed values; this adapter adds grading and
+ *     show-answer state for them.
  *
  * Keys use the `abm_book_` prefix so the existing Reset / Export / Import flow
  * (book-exporter.js + data-manager.js) covers question answers automatically.
+ * It also saves grading: option footer feedback classes, the overall feedback
+ * card shown after Submit, and show-answer mode. In show-answer mode the field
+ * holds the correct answer, so the student's own math value is kept separately.
+ *
  * One key per question: abm_book_<path>__question__<questionId>.
  */
 (function () {
   const PREFIX = 'abm_book_';
   const SAVE_DELAY = 300;
   const QUESTION_SELECTOR = 'div.multiple-choice[id], div.short-answer[id]';
+  const FEEDBACK_CLASSES = ['correct', 'incorrect', 'show-answer', 'show-feedback', 'parsing-error'];
 
   function keyFor(questionId) {
     return `${PREFIX}${window.location.pathname}__question__${questionId}`;
@@ -35,28 +41,93 @@
     return Array.from(section.querySelectorAll('div.sd-card.option'));
   }
 
-  function mathFields(questionDiv) {
-    return Array.from(questionDiv.querySelectorAll('math-field[id]'));
+  /** Inline-gap cards (span.inline-card.field) for questions without option cards. */
+  function answerCards(questionDiv) {
+    const options = optionCards(questionDiv);
+    return options.length ? options : Array.from(questionDiv.querySelectorAll('span.inline-card.field'));
   }
 
-  /** Snapshot the current answer: selected option indices + math-field values. */
+  /** Fillable fields keyed by element id (blocks) or gap index (inline gaps). */
+  function answerFields(questionDiv) {
+    const fields = [];
+    questionDiv.querySelectorAll('textarea.question-option-input[id], math-field[id]').forEach(el => {
+      if (!el.closest('span.inline-card')) fields.push({ key: el.id, el });
+    });
+    questionDiv.querySelectorAll('span.inline-card.field').forEach((card, i) => {
+      const el = card.querySelector('input.question-option-input, math-field.question-option-input, select.question-option-input');
+      if (el) fields.push({ key: `gap-${i}`, el });
+    });
+    return fields;
+  }
+
+  function valueOf(el) {
+    return el.tagName === 'SELECT' ? String(el.selectedIndex) : (el.value || '');
+  }
+
+  function setValue(el, v) {
+    if (el.tagName === 'SELECT') el.selectedIndex = Number(v);
+    else el.value = v;
+  }
+
+  function overallCards(questionDiv) {
+    const section = document.getElementById(`${questionDiv.id}-overall-feedback`);
+    if (section) return Array.from(section.querySelectorAll('div.sd-card'));
+    return Array.from(questionDiv.querySelectorAll('section.question-feedback div.sd-card'));
+  }
+
+  // Show answer writes the correct answer into the field, so the student's own
+  // math-field value is kept here while that mode is active.
+  const studentMath = new Map();
+
+  /** Snapshot the current answer and grading: selections, feedback, and show-answer mode. */
   function readState(questionDiv) {
     const selected = [];
-    optionCards(questionDiv).forEach((card, i) => {
+    const feedback = {};
+    answerCards(questionDiv).forEach((card, i) => {
       const body = card.querySelector('div.sd-card-body');
       if (body && body.classList.contains('selected')) selected.push(i);
+      const footer = card.querySelector('div.sd-card-footer, span.inline-card-footer');
+      const classes = footer ? FEEDBACK_CLASSES.filter(c => footer.classList.contains(c)) : [];
+      if (classes.length) feedback[i] = classes;
     });
+    const overall = [];
+    overallCards(questionDiv).forEach((card, i) => {
+      if (card.classList.contains('show')) overall.push(i);
+    });
+
     const math = {};
-    mathFields(questionDiv).forEach(mf => {
-      const v = mf.value != null ? mf.value : '';
-      if (v) math[mf.id] = v;
+    const shown = {};
+    answerFields(questionDiv).forEach(({ key, el }) => {
+      const isShown = el.classList.contains('show-answer');
+      if (el.tagName === 'MATH-FIELD') {
+        if (isShown) {
+          shown[key] = el.value || '';
+          if (studentMath.get(key)) math[key] = studentMath.get(key);
+        } else {
+          const v = el.value || '';
+          studentMath.set(key, v);
+          if (v) math[key] = v;
+        }
+      } else if (isShown) {
+        shown[key] = valueOf(el);
+      }
     });
-    return { selected, math };
+
+    return { selected, feedback, overall, math, shown };
   }
 
   function hasState(state) {
-    return (state.selected && state.selected.length > 0) ||
-      (state.math && Object.keys(state.math).length > 0);
+    return state.selected.length > 0 || Object.keys(state.feedback).length > 0 ||
+      state.overall.length > 0 || Object.keys(state.math).length > 0 ||
+      Object.keys(state.shown).length > 0;
+  }
+
+  function setReadOnly(field, readOnly) {
+    field.readOnly = readOnly;
+    if (field.tagName === 'MATH-FIELD') {
+      if (readOnly) field.setAttribute('read-only', '');
+      else field.removeAttribute('read-only');
+    }
   }
 
   function save(questionDiv) {
@@ -83,24 +154,42 @@
       return;
     }
 
-    const cards = optionCards(questionDiv);
+    const cards = answerCards(questionDiv);
     (state.selected || []).forEach(i => {
       const card = cards[i];
       const body = card && card.querySelector('div.sd-card-body');
       if (body) body.classList.add('selected');
     });
 
-    if (state.math) {
-      const applyMath = () => mathFields(questionDiv).forEach(mf => {
-        if (state.math[mf.id] != null) {
-          try { mf.value = state.math[mf.id]; } catch (e) { /* not upgraded yet */ }
-        }
+    Object.entries(state.feedback || {}).forEach(([i, classes]) => {
+      const footer = cards[i] && cards[i].querySelector('div.sd-card-footer, span.inline-card-footer');
+      if (footer) footer.classList.add(...classes);
+    });
+    const overall = overallCards(questionDiv);
+    (state.overall || []).forEach(i => {
+      if (overall[i]) overall[i].classList.add('show');
+    });
+
+    Object.entries(state.math || {}).forEach(([id, v]) => studentMath.set(id, v));
+
+    const applyValues = () => {
+      answerFields(questionDiv).forEach(({ key, el }) => {
+        try {
+          if (el.tagName === 'MATH-FIELD' && state.math && state.math[key] != null) el.value = state.math[key];
+          if (state.shown && state.shown[key] != null) {
+            setValue(el, state.shown[key]);
+            el.classList.add('show-answer');
+            setReadOnly(el, true);
+          }
+        } catch (e) { /* math-field not upgraded yet */ }
       });
-      applyMath();
-      // MathLive may upgrade <math-field> only after its CDN script loads, retry.
-      if (window.customElements && !customElements.get('math-field')) {
-        customElements.whenDefined('math-field').then(applyMath).catch(() => {});
-      }
+    };
+    applyValues();
+    // Text inputs are restored by data-manager.js, which may run after this, so apply again on the next tick.
+    setTimeout(applyValues, 0);
+    // MathLive may upgrade <math-field> only after its CDN script loads, retry.
+    if (window.customElements && !customElements.get('math-field')) {
+      customElements.whenDefined('math-field').then(applyValues).catch(() => {});
     }
   }
 
@@ -119,7 +208,25 @@
     // and the question's own Reset (which clears the answer → key removed).
     document.addEventListener('click', function (event) {
       const q = event.target.closest && event.target.closest('div.multiple-choice, div.short-answer');
-      if (q && q.id) setTimeout(() => save(q), 0);
+      if (!q || !q.id) return;
+      const isTryAgain = !!event.target.closest('div.sd-card.reset-button');
+      setTimeout(() => {
+        // Try again clears fields without firing input/change, so data-manager.js
+        // would keep the old values. Dispatch them so it saves the cleared state.
+        if (isTryAgain) {
+          q.querySelectorAll('.question-option-input').forEach(el => {
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+          });
+        }
+        save(q);
+      }, 0);
+    });
+
+    // Focusing a short-answer field clears its feedback and show-answer mode, without a click.
+    document.addEventListener('focusin', function (event) {
+      const q = event.target.closest && event.target.closest('div.multiple-choice, div.short-answer');
+      if (q && q.id) debouncedSave(q);
     });
 
     // Save math-field edits (MathLive fires input/change; text <input>s are left
